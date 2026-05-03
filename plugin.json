@@ -1,0 +1,14 @@
+{
+  "id": "nodebb-plugin-simple-contact",
+  "name": "Simple Contact Form",
+  "description": "Contact form with admin notifications, replies, and chat follow-up",
+  "url": "https://github.com/palmoni5/nodebb-plugin-simple-contact",
+  "library": "./library.js",
+  "languages": "./languages",
+  "hooks": [
+    { "hook": "static:app.load", "method": "init" },
+    { "hook": "filter:navigation.available", "method": "addNavigation" },
+    { "hook": "filter:admin.header.build", "method": "addAdminNavigation" }
+  ],
+  "templates": "public/templates"
+}
