@@ -10,5 +10,8 @@
     { "hook": "filter:navigation.available", "method": "addNavigation" },
     { "hook": "filter:admin.header.build", "method": "addAdminNavigation" }
   ],
-  "templates": "public/templates"
+  "templates": "public/templates",
+  "modules": {
+    "../admin/plugins/contact.js": "static/lib/admin/plugins/contact.js"
+  }
 }
