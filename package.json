@@ -1,6 +1,6 @@
 {
   "name": "nodebb-plugin-simple-contact",
-  "version": "2.5.0",
+  "version": "2.5.1",
   "description": "Simple contact form for NodeBB with admin notifications and request handling",
   "main": "library.js",
   "templates": "templates",
@@ -13,7 +13,7 @@
   },
   "homepage": "https://github.com/palmoni5/nodebb-plugin-simple-contact#readme",
   "nbbpm": {
-    "compatibility": "^3.0.0"
+    "compatibility": "^3.0.0 || ^4.0.0"
   },
   "keywords": [
     "nodebb",
