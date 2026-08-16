@@ -73,7 +73,7 @@
   "admin.details-modal-title": "Request Details",
   "admin.assign-section-title": "Assign to Admin",
   "admin.not-assigned": "Unassigned",
-  "admin.assigned-to": "Assigned to:",
+  "admin.assigned-to": "Assigned to: %1",
   "admin.assign-btn": "Assign",
   "admin.assign-success": "The request was assigned successfully.",
   "admin.assign-error": "Error assigning the request.",

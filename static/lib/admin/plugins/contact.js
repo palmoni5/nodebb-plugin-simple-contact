@@ -1,6 +1,7 @@
 'use strict';
 
 const translator = require('translator');
+const modals = require('modals');
 
 function showMessage(type, msg) {
     const clean = msg.replace(/<[^>]*>/g, '');
@@ -14,15 +15,7 @@ function showMessage(type, msg) {
 }
 
 function confirmBox(message, cb) {
-    if (window.app && window.app.require) {
-        window.app.require('bootbox').then(function (bootbox) {
-            bootbox.confirm(message, cb);
-        });
-    } else if (window.bootbox) {
-        window.bootbox.confirm(message, cb);
-    } else {
-        cb(confirm(message));
-    }
+    modals.confirm(message, cb);
 }
 
 function performHandle(id) {
@@ -39,43 +32,32 @@ function performDelete(id) {
 
 // ---- Activity type labels ----
 var activityLabels = {
-    submitted:      { icon: 'fa-paper-plane', cls: 'text-primary',  key: '[[simple-contact:admin.activity.submitted]]' },
-    handled:        { icon: 'fa-check-circle', cls: 'text-success', key: '[[simple-contact:admin.activity.handled]]' },
-    assigned:       { icon: 'fa-user',         cls: 'text-info',    key: '[[simple-contact:admin.activity.assigned]]' },
-    reply_email:    { icon: 'fa-envelope',     cls: 'text-warning', key: '[[simple-contact:admin.activity.reply_email]]' },
-    reply_chat:     { icon: 'fa-comments',     cls: 'text-warning', key: '[[simple-contact:admin.activity.reply_chat]]' },
-    comment:        { icon: 'fa-comment-o',    cls: 'text-muted',   key: '[[simple-contact:admin.activity.comment]]' },
-    comment_deleted:{ icon: 'fa-trash-o',      cls: 'text-danger',  key: '[[simple-contact:admin.activity.comment_deleted]]' },
+    submitted:      { icon: 'fa-paper-plane', cls: 'text-primary',  key: 'simple-contact:admin.activity.submitted' },
+    handled:        { icon: 'fa-check-circle', cls: 'text-success', key: 'simple-contact:admin.activity.handled' },
+    assigned:       { icon: 'fa-user',         cls: 'text-info',    key: 'simple-contact:admin.activity.assigned' },
+    reply_email:    { icon: 'fa-envelope',     cls: 'text-warning', key: 'simple-contact:admin.activity.reply_email' },
+    reply_chat:     { icon: 'fa-comments',     cls: 'text-warning', key: 'simple-contact:admin.activity.reply_chat' },
+    comment:        { icon: 'fa-comment-o',    cls: 'text-muted',   key: 'simple-contact:admin.activity.comment' },
+    comment_deleted:{ icon: 'fa-trash-o',      cls: 'text-danger',  key: 'simple-contact:admin.activity.comment_deleted' },
 };
 
-function buildActivityLine(a) {
+function prepareActivityItem(a) {
     var meta = activityLabels[a.type] || { icon: 'fa-circle-o', cls: 'text-muted', key: a.type };
-    var label = meta.key;
-    if (a.type === 'assigned') {
-        label = label + ' <strong>' + escHtml(a.extra && a.extra.toUsername ? a.extra.toUsername : '[[simple-contact:admin.not-assigned]]') + '</strong>';
-    }
-    return '<div style="padding:5px 0; border-bottom:1px solid #f0f0f0; font-size:13px;">' +
-        '<i class="fa ' + meta.icon + ' ' + meta.cls + '" style="width:18px;"></i> ' +
-        '<strong>' + escHtml(a.username) + '</strong> — ' + label +
-        ' <span style="color:#aaa; font-size:11px; margin-right:6px;">' + escHtml(a.date) + '</span>' +
-        '</div>';
+    return {
+        icon: meta.icon,
+        cls: meta.cls,
+        labelKey: meta.key,
+        assigned: a.type === 'assigned',
+        toUsername: (a.extra && a.extra.toUsername) || '',
+        username: a.username,
+        date: a.date,
+    };
 }
 
-function buildCommentHtml(c, currentContactId) {
-    return '<div class="contact-comment" data-comment-id="' + c.id + '" style="background:#fffbe6; border-right:3px solid #f0c040; padding:8px 12px; border-radius:4px; margin-bottom:8px;">' +
-        '<div style="font-size:12px; color:#888; margin-bottom:4px;">' +
-            '<strong>' + escHtml(c.username) + '</strong> · ' + escHtml(c.date) +
-            ' <button class="btn btn-xs btn-link delete-comment-btn" data-id="' + escHtml(currentContactId) + '" data-comment-id="' + c.id + '" style="color:#c0392b; padding:0 4px; float:left;">' +
-                '<i class="fa fa-trash-o"></i>' +
-            '</button>' +
-        '</div>' +
-        '<div style="white-space:pre-wrap; word-break:break-word;">' + escHtml(c.content) + '</div>' +
-    '</div>';
-}
-
-function escHtml(str) {
-    if (!str && str !== 0) return '';
-    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function renderAssignBadge(container, assignedUsername) {
+    app.parseAndTranslate('admin/plugins/contact/assign-badge', { assignedUsername: assignedUsername || '' }, function (html) {
+        container.empty().append(html);
+    });
 }
 
 function openDetailsModal(contactId) {
@@ -84,9 +66,8 @@ function openDetailsModal(contactId) {
     $('#details-full-name').text('...');
     $('#comments-list').html('<div style="color:#aaa; text-align:center;"><i class="fa fa-spinner fa-spin"></i></div>');
     $('#activity-list').html('');
-    $('#assign-uid-select').empty();
-    translator.translate('[[simple-contact:admin.not-assigned]]', function (notAssigned) {
-        $('#assign-uid-select').append('<option value="0">— ' + notAssigned + ' —</option>');
+    app.parseAndTranslate('admin/plugins/contact/assign-options', { admins: [] }, function (html) {
+        $('#assign-uid-select').empty().append(html);
     });
     modal.modal('show');
 
@@ -96,55 +77,45 @@ function openDetailsModal(contactId) {
             $('#details-full-name').text(contact.fullName || '');
 
             // Populate assign dropdown
-            translator.translate('[[simple-contact:admin.not-assigned]]', function (notAssigned) {
-                var sel = $('#assign-uid-select');
-                sel.empty().append('<option value="0">— ' + notAssigned + ' —</option>');
-                (data.admins || []).forEach(function (admin) {
-                    var opt = $('<option>').val(admin.uid).text(admin.username);
-                    if (String(admin.uid) === String(contact.assignedUid)) opt.prop('selected', true);
-                    sel.append(opt);
-                });
+            var admins = (data.admins || []).map(function (admin) {
+                return {
+                    uid: admin.uid,
+                    username: admin.username,
+                    selected: String(admin.uid) === String(contact.assignedUid),
+                };
+            });
+            app.parseAndTranslate('admin/plugins/contact/assign-options', { admins: admins }, function (html) {
+                $('#assign-uid-select').empty().append(html);
             });
 
-            var assignedKey = contact.assignedUsername
-                ? '[[simple-contact:admin.assigned-to]] ' + contact.assignedUsername
-                : '[[simple-contact:admin.not-assigned]]';
-            translator.translate(assignedKey, function (txt) { $('#assign-current').text(txt); });
+            var assignCurrent = $('#assign-current');
+            if (contact.assignedUsername) {
+                translator.translateKey('simple-contact:admin.assigned-to', [contact.assignedUsername]).then(function (txt) {
+                    assignCurrent.text(txt);
+                });
+            } else {
+                translator.translate('[[simple-contact:admin.not-assigned]]', function (txt) { assignCurrent.text(txt); });
+            }
 
             // Render comments
             var comments = data.comments || [];
             $('#comments-badge').text(comments.length);
-            if (comments.length === 0) {
-                translator.translate('[[simple-contact:admin.no-comments]]', function (txt) {
-                    $('#comments-list').html('<div style="color:#aaa; font-size:13px; text-align:center;">' + txt + '</div>');
-                });
-            } else {
-                var html = '';
-                comments.slice().reverse().forEach(function (c) {
-                    html += buildCommentHtml(c, contactId);
-                });
-                $('#comments-list').html(html);
-            }
+            var commentItems = comments.slice().reverse().map(function (c) {
+                return { id: c.id, username: c.username, date: c.date, content: c.content, contactId: contactId };
+            });
+            app.parseAndTranslate('admin/plugins/contact/comments', { comments: commentItems }, function (html) {
+                $('#comments-list').empty().append(html);
+            });
 
             // Render activity
-            var activity = data.activity || [];
-            if (activity.length === 0) {
-                translator.translate('[[simple-contact:admin.no-activity]]', function (txt) {
-                    $('#activity-list').html('<div style="color:#aaa; font-size:13px; text-align:center;">' + txt + '</div>');
-                });
-            } else {
-                var ahtml = '';
-                activity.slice().reverse().forEach(function (a) {
-                    ahtml += buildActivityLine(a);
-                });
-                translator.translate(ahtml, function (translated) {
-                    $('#activity-list').html(translated);
-                });
-            }
+            var activityItems = (data.activity || []).slice().reverse().map(prepareActivityItem);
+            app.parseAndTranslate('admin/plugins/contact/activity', { activity: activityItems }, function (html) {
+                $('#activity-list').empty().append(html);
+            });
         })
         .fail(function () {
-            translator.translate('[[simple-contact:error.internal]]', function (txt) {
-                $('#comments-list').html('<div style="color:#c00;">' + txt + '</div>');
+            app.parseAndTranslate('admin/plugins/contact/comments', { comments: [], error: true }, function (html) {
+                $('#comments-list').empty().append(html);
             });
         });
 }
@@ -165,17 +136,19 @@ function bindDetailsModalEvents() {
         .done(function (data) {
             if (data.success) {
                 showMessage('success', '[[simple-contact:admin.assign-success]]');
-                var txt = data.assignedUsername ? '[[simple-contact:admin.assigned-to]] ' + data.assignedUsername : '[[simple-contact:admin.not-assigned]]';
-                $('#assign-current').text(txt);
+                var assignCurrent = $('#assign-current');
+                if (data.assignedUsername) {
+                    translator.translateKey('simple-contact:admin.assigned-to', [data.assignedUsername]).then(function (txt) {
+                        assignCurrent.text(txt);
+                    });
+                } else {
+                    translator.translate('[[simple-contact:admin.not-assigned]]', function (txt) { assignCurrent.text(txt); });
+                }
                 // Refresh activity section
                 openDetailsModal(contactId);
                 // Update badge in table row
                 var row = $('tr[data-id="' + contactId + '"]');
-                if (data.assignedUsername) {
-                    row.find('td').eq(5).html('<span class="label label-info" style="border-radius:8px; font-size:11px;">' + escHtml(data.assignedUsername) + '</span>');
-                } else {
-                    row.find('td').eq(5).html('<span style="color:#aaa; font-size:12px;">—</span>');
-                }
+                renderAssignBadge(row.find('td').eq(5), data.assignedUsername);
             }
         })
         .fail(function () { showMessage('error', '[[simple-contact:admin.assign-error]]'); })

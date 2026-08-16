@@ -73,7 +73,7 @@
   "admin.details-modal-title": "פרטי פנייה",
   "admin.assign-section-title": "הקצאה למנהל",
   "admin.not-assigned": "לא מוקצה",
-  "admin.assigned-to": "מוקצה ל:",
+  "admin.assigned-to": "מוקצה ל: %1",
   "admin.assign-btn": "הקצה",
   "admin.assign-success": "הפנייה הוקצתה בהצלחה",
   "admin.assign-error": "שגיאה בהקצאה",
