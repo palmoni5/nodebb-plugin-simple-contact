@@ -96,5 +96,17 @@
   "admin.activity.comment_deleted": "deleted a note",
   "notification.assigned": "%1 assigned a contact request from %2 to you",
   "email.greeting": "Hello, we received your message,",
-  "email.footer": "This message was sent automatically from <a href=\"%1\" style=\"color: #666; text-decoration: none;\">%2</a>"
+  "email.footer": "This message was sent automatically from <a href=\"%1\" style=\"color: #666; text-decoration: none;\">%2</a>",
+  "form.terms-agree": "I have read and I agree",
+  "form.terms-required": "You must accept the terms before sending your request.",
+  "error.terms-required": "You must accept the terms before sending your request.",
+  "admin.settings-title": "Contact Form Settings",
+  "admin.require-terms": "Require terms acceptance before sending a request",
+  "admin.require-terms-help": "When enabled, a checkbox is shown on the form and the request cannot be sent without it.",
+  "admin.terms-text": "Terms text (shown above the checkbox)",
+  "admin.terms-text-help": "HTML is allowed, e.g. a link to your terms page. Leave empty to show only the checkbox.",
+  "admin.terms-label": "Checkbox label",
+  "admin.terms-label-help": "Leave empty to use the default label: I have read and I agree.",
+  "admin.save-settings": "Save Settings",
+  "admin.settings-saved": "Settings saved successfully."
 }

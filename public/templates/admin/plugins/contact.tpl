@@ -1,3 +1,11 @@
+<div class="row">
+    <div class="col-xs-12" style="text-align:left; margin-bottom:10px;">
+        <button type="button" class="btn btn-default btn-sm" id="open-contact-settings" style="border-radius:8px; font-weight:600;">
+            <i class="fa fa-cog"></i> {{tx("simple-contact:admin.settings-title")}}
+        </button>
+    </div>
+</div>
+
 <div class="row text-center">
     <div class="col-xs-12">
 
@@ -303,6 +311,46 @@
             <i class="fa fa-paper-plane"></i> {{tx("simple-contact:admin.send-chat")}}
         </button>
       </div>
+    </div>
+  </div>
+</div>
+
+<div id="contactSettingsModal" class="modal fade" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title"><i class="fa fa-cog"></i> {{tx("simple-contact:admin.settings-title")}}</h4>
+      </div>
+      <form id="contact-settings-form" class="contact-settings">
+        <div class="modal-body text-right">
+            <div class="checkbox mb-3 form-check">
+                <label class="form-check-label">
+                    <input type="checkbox" class="form-check-input" id="requireTerms" name="requireTerms">
+                    <strong>{{tx("simple-contact:admin.require-terms")}}</strong>
+                </label>
+                <p class="help-block text-muted" style="margin:4px 0 0;">{{tx("simple-contact:admin.require-terms-help")}}</p>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label" for="termsText"><strong>{{tx("simple-contact:admin.terms-text")}}</strong></label>
+                <textarea class="form-control" id="termsText" name="termsText" rows="6" style="border-radius:8px;"></textarea>
+                <p class="help-block text-muted" style="margin:4px 0 0;">{{tx("simple-contact:admin.terms-text-help")}}</p>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label" for="termsLabel"><strong>{{tx("simple-contact:admin.terms-label")}}</strong></label>
+                <input type="text" class="form-control" id="termsLabel" name="termsLabel" style="border-radius:8px;">
+                <p class="help-block text-muted" style="margin:4px 0 0;">{{tx("simple-contact:admin.terms-label-help")}}</p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">{{tx("modules:bootbox.cancel")}}</button>
+            <button type="submit" class="btn btn-primary" id="save-contact-settings" style="font-weight:600;">
+                <i class="fa fa-save"></i> {{tx("simple-contact:admin.save-settings")}}
+            </button>
+        </div>
+      </form>
     </div>
   </div>
 </div>

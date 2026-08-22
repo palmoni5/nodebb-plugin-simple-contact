@@ -37,6 +37,12 @@ require(['translator'], function (translator) {
                 return;
             }
 
+            var termsBox = $('#contact-terms');
+            if (termsBox.length && !termsBox.is(':checked')) {
+                showAlert(alertBox, 'danger', '[[simple-contact:form.terms-required]]');
+                return;
+            }
+
             btn.prop('disabled', true);
             translator.translate('[[simple-contact:form.sending]]', function (txt) { btn.text(txt); });
             alertBox.hide().removeClass('alert-success alert-danger');
@@ -49,6 +55,7 @@ require(['translator'], function (translator) {
                     email: email,
                     content: content,
                     username: username,
+                    terms: termsBox.length ? termsBox.is(':checked') : undefined,
                     _csrf: config.csrf_token,
                 },
                 headers: { 'x-csrf-token': config.csrf_token },

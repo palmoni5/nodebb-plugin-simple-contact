@@ -30,6 +30,22 @@
                         <textarea class="form-control" id="contact-message" name="content" rows="6" required style="border-radius:10px; padding:10px;"></textarea>
                     </div>
 
+                    {{{ if requireTerms }}}
+                    <div class="mb-3" id="contact-terms-group">
+                        {{{ if termsText }}}
+                        <div class="border rounded p-3 mb-2" id="contact-terms-text" style="border-radius:10px; background:#f8f9fa; max-height:220px; overflow:auto;">
+                            {{termsText}}
+                        </div>
+                        {{{ end }}}
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="contact-terms" name="terms" required>
+                            <label class="form-check-label" for="contact-terms" style="font-weight:600;">
+                                {{{ if termsLabel }}}{termsLabel}{{{ else }}}{{tx("simple-contact:form.terms-agree")}}{{{ end }}}
+                            </label>
+                        </div>
+                    </div>
+                    {{{ end }}}
+
                     <button type="submit" class="btn btn-primary w-100" id="submit-btn" style="border-radius:22px; font-weight:600; padding:12px; margin-top:10px;">
                         {{tx("simple-contact:form.submit")}}
                     </button>

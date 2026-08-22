@@ -96,5 +96,17 @@
   "admin.activity.comment_deleted": "מחק/ה הערה",
   "notification.assigned": "%1 הקצה/תה אליך פנייה מאת %2",
   "email.greeting": "שלום, קיבלנו את פנייתך,",
-  "email.footer": "הודעה זו נשלחה אוטומטית מאתר <a href=\"%1\" style=\"color: #666; text-decoration: none;\">%2</a>"
+  "email.footer": "הודעה זו נשלחה אוטומטית מאתר <a href=\"%1\" style=\"color: #666; text-decoration: none;\">%2</a>",
+  "form.terms-agree": "קראתי ואני מאשר/ת",
+  "form.terms-required": "יש לאשר את התנאים לפני שליחת הפנייה.",
+  "error.terms-required": "יש לאשר את התנאים לפני שליחת הפנייה.",
+  "admin.settings-title": "הגדרות טופס צור קשר",
+  "admin.require-terms": "חייב אישור תנאים לפני שליחת פנייה",
+  "admin.require-terms-help": "כאשר האפשרות מסומנת, תוצג תיבת סימון בטופס והפנייה לא תישלח ללא אישור.",
+  "admin.terms-text": "טקסט התנאים (יוצג מעל תיבת הסימון)",
+  "admin.terms-text-help": "ניתן להשתמש בתגיות HTML, לדוגמה קישור לתקנון. אם השדה ריק, תוצג רק תיבת הסימון.",
+  "admin.terms-label": "טקסט ליד תיבת הסימון",
+  "admin.terms-label-help": "אם השדה ריק, יוצג הטקסט המוגדר כברירת מחדל: קראתי ואני מאשר/ת.",
+  "admin.save-settings": "שמור הגדרות",
+  "admin.settings-saved": "ההגדרות נשמרו בהצלחה"
 }

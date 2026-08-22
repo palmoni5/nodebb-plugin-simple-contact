@@ -216,7 +216,34 @@ function bindDetailsModalEvents() {
     });
 }
 
+function initSettings() {
+    var form = $('#contact-settings-form');
+    if (!form.length) {
+        return;
+    }
+
+    require(['settings'], function (Settings) {
+        $('#open-contact-settings').off('click').on('click', function () {
+            Settings.load('simple-contact', form);
+            $('#contactSettingsModal').modal('show');
+        });
+
+        form.off('submit').on('submit', function (e) {
+            e.preventDefault();
+            Settings.save('simple-contact', form, function (err) {
+                if (err) {
+                    return showMessage('error', err.message || '[[simple-contact:admin.send-error]]');
+                }
+                showMessage('success', '[[simple-contact:admin.settings-saved]]');
+                $('#contactSettingsModal').modal('hide');
+            });
+        });
+    });
+}
+
 function initContactPage() {
+    initSettings();
+
     bindDetailsModalEvents();
 
     $('.view-details').off('click').on('click', function () {

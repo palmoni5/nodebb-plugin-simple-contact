@@ -37,6 +37,19 @@ ContactPlugin.init = async function (params) {
     router.post('/api/admin/plugins/contact/assign', middleware.admin.buildHeader, assignRequest);
 };
 
+function isTrue(value) {
+    return value === true || value === 'true' || value === 'on' || value === 1 || value === '1';
+}
+
+async function getContactSettings() {
+    const settings = await meta.settings.get('simple-contact') || {};
+    return {
+        requireTerms: isTrue(settings.requireTerms),
+        termsText: settings.termsText || '',
+        termsLabel: settings.termsLabel || '',
+    };
+}
+
 async function getUserLanguage(uid) {
     if (parseInt(uid, 10) > 0) {
         const settings = await user.getSettings(uid);
@@ -178,7 +191,11 @@ async function getChatRoom(req, res) {
 }
 
 async function renderContactPage(req, res) {
+    const settings = await getContactSettings();
     res.render('contact', {
+        requireTerms: settings.requireTerms,
+        termsText: settings.termsText,
+        termsLabel: settings.termsLabel,
         title: '[[simple-contact:contact-page-title]]',
         breadcrumbs: [
             { text: '[[global:home]]', url: '/' },
@@ -192,6 +209,11 @@ async function handleContactSubmission(req, res) {
     const data = req.body;
     if (!data.fullName || !data.email || !data.content) {
         return res.status(400).json({ error: await translate(language, 'error.required-fields') });
+    }
+
+    const settings = await getContactSettings();
+    if (settings.requireTerms && !isTrue(data.terms)) {
+        return res.status(400).json({ error: await translate(language, 'error.terms-required') });
     }
 
     if (data.username) {
@@ -214,6 +236,7 @@ async function handleContactSubmission(req, res) {
         content: data.content,
         timestamp: contactId,
         handled: false,
+        termsAccepted: settings.requireTerms ? 1 : 0,
         assignedUid: 0,
         assignedUsername: '',
     };
