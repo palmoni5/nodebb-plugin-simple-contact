@@ -3,6 +3,9 @@
 const db = require.main.require('./src/database');
 const notifications = require.main.require('./src/notifications');
 const groups = require.main.require('./src/groups');
+const privileges = require.main.require('./src/privileges');
+const controllerHelpers = require.main.require('./src/controllers/helpers');
+const middlewareHelpers = require.main.require('./src/middleware/helpers');
 const emailer = require.main.require('./src/emailer');
 const messaging = require.main.require('./src/messaging');
 const user = require.main.require('./src/user');
@@ -11,6 +14,9 @@ const translator = require.main.require('./src/translator');
 const winston = require.main.require('winston');
 
 const MERGE_ID = 'simple-contact:new-contact';
+const SUBMIT_PRIVILEGE = 'contact:submit';
+const RATE_LIMIT_MAX = 5;
+const RATE_LIMIT_WINDOW = 3600000;
 const CONTACT_NID = /^(contact-request:|contact:assigned:|contact:notification:)/;
 
 const ContactPlugin = {};
@@ -19,9 +25,9 @@ ContactPlugin.init = async function (params) {
     const router = params.router;
     const middleware = params.middleware;
 
-    router.get('/contact', middleware.buildHeader, renderContactPage);
-    router.get('/api/contact', renderContactPage);
-    router.post('/api/contact/send', middleware.applyCSRF, handleContactSubmission);
+    router.get('/contact', middleware.buildHeader, canSubmit, renderContactPage);
+    router.get('/api/contact', canSubmit, renderContactPage);
+    router.post('/api/contact/send', middleware.applyCSRF, canSubmit, handleContactSubmission);
 
     router.get('/admin/plugins/contact', middleware.admin.buildHeader, renderAdminPage);
     router.get('/api/admin/plugins/contact', renderAdminPage);
@@ -33,7 +39,34 @@ ContactPlugin.init = async function (params) {
     router.post('/api/admin/plugins/contact/comment', middleware.applyCSRF, addComment);
     router.post('/api/admin/plugins/contact/delete-comment', middleware.applyCSRF, deleteComment);
     router.post('/api/admin/plugins/contact/assign', middleware.applyCSRF, assignRequest);
+
+    await grantDefaultPrivileges();
 };
+
+async function grantDefaultPrivileges() {
+    if (await db.getObjectField('simple-contact', 'default-privileges-granted')) {
+        return;
+    }
+    await privileges.global.give([`groups:${SUBMIT_PRIVILEGE}`], ['registered-users', 'guests']);
+    await db.setObjectField('simple-contact', 'default-privileges-granted', 1);
+}
+
+const canSubmit = middlewareHelpers.try(async (req, res, next) => {
+    if (await privileges.global.can(SUBMIT_PRIVILEGE, req.uid)) {
+        return next();
+    }
+    return controllerHelpers.notAllowed(req, res);
+});
+
+async function checkRateLimit(req) {
+    const identity = req.uid > 0 ? `uid:${req.uid}` : `ip:${req.ip}`;
+    const key = `simple-contact:ratelimit:${identity}`;
+    const count = await db.increment(key);
+    if (count === 1) {
+        await db.pexpire(key, RATE_LIMIT_WINDOW);
+    }
+    return count <= RATE_LIMIT_MAX;
+}
 
 function isTrue(value) {
     return value === true || value === 'true' || value === 'on' || value === 1 || value === '1';
@@ -133,6 +166,11 @@ async function renderContactPage(req, res) {
 async function handleContactSubmission(req, res) {
     const language = await getUserLanguage(req.uid);
     const data = req.body;
+
+    if (!await checkRateLimit(req)) {
+        return res.status(429).json({ error: await translate(language, 'error.rate-limited') });
+    }
+
     if (!data.fullName || !data.email || !data.content) {
         return res.status(400).json({ error: await translate(language, 'error.required-fields') });
     }
@@ -438,6 +476,14 @@ ContactPlugin.mergeNotifications = async function (data) {
                 'simple-contact:notification.multiple', notification.mergeCount
             );
         }
+    });
+    return data;
+};
+
+ContactPlugin.registerPrivileges = async function (data) {
+    data.privileges.set(SUBMIT_PRIVILEGE, {
+        label: '[[simple-contact:privilege.submit]]',
+        type: 'posting',
     });
     return data;
 };

@@ -106,5 +106,7 @@
   "admin.terms-label": "Checkbox label",
   "admin.terms-label-help": "Leave empty to use the default label: I have read and I agree.",
   "admin.save-settings": "Save Settings",
-  "admin.settings-saved": "Settings saved successfully."
+  "admin.settings-saved": "Settings saved successfully.",
+  "error.rate-limited": "You have sent too many requests. Please try again later.",
+  "privilege.submit": "Send contact requests"
 }

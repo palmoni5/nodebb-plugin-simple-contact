@@ -106,5 +106,7 @@
   "admin.terms-label": "טקסט ליד תיבת הסימון",
   "admin.terms-label-help": "אם השדה ריק, יוצג הטקסט המוגדר כברירת מחדל: קראתי ואני מאשר/ת.",
   "admin.save-settings": "שמור הגדרות",
-  "admin.settings-saved": "ההגדרות נשמרו בהצלחה"
+  "admin.settings-saved": "ההגדרות נשמרו בהצלחה",
+  "error.rate-limited": "שלחת יותר מדי פניות. נסה שוב מאוחר יותר.",
+  "privilege.submit": "שליחת פניות"
 }
