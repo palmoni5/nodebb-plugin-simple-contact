@@ -1,58 +1,58 @@
-<div class="row justify-content-center">
-    <div class="col-lg-8" style="margin-top:20px;">
-        <div class="card shadow-sm" style="border-radius:14px; border:none;">
+<div class="row justify-content-center mt-4">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
 
-            <div class="card-header text-center" style="background:linear-gradient(135deg,#2b6cb0,#2c5282); color:#fff; border-radius:14px 14px 0 0; padding:15px; border:none;">
-                <h3 class="card-title" style="font-weight:600; margin:0;">{{tx("simple-contact:contact-page-title")}}</h3>
+            <div class="card-header text-center py-3 bg-primary text-white">
+                <h3 class="card-title fw-semibold mb-0">{{tx("simple-contact:contact-page-title")}}</h3>
             </div>
 
-            <div class="card-body" style="border-radius:0 0 14px 14px; padding:20px 25px;">
+            <div class="card-body p-4">
 
-                <form id="contact-form" role="form" style="max-width:600px; margin:0 auto;">
+                <form id="contact-form" role="form" class="mx-auto" style="max-width:600px;">
 
                     <div class="mb-3">
-                        <label for="fullName" class="form-label" style="font-weight:600;">{{tx("simple-contact:form.full-name")}} *</label>
-                        <input type="text" class="form-control" id="fullName" name="fullName" required style="border-radius:10px; padding:10px;">
+                        <label for="fullName" class="form-label fw-semibold">{{tx("simple-contact:form.full-name")}} *</label>
+                        <input type="text" class="form-control" id="fullName" name="fullName" required>
                     </div>
 
                     <div class="mb-3" id="username-group">
-                        <label for="username" class="form-label" style="font-weight:600;">{{tx("simple-contact:form.username")}}</label>
-                        <input type="text" class="form-control" id="username" name="username" style="border-radius:10px; padding:10px;">
+                        <label for="username" class="form-label fw-semibold">{{tx("simple-contact:form.username")}}</label>
+                        <input type="text" class="form-control" id="username" name="username">
                     </div>
 
                     <div class="mb-3">
-                        <label for="email" class="form-label" style="font-weight:600;">{{tx("simple-contact:form.email")}} *</label>
-                        <input type="email" class="form-control" id="email" name="email" required style="border-radius:10px; padding:10px;">
+                        <label for="email" class="form-label fw-semibold">{{tx("simple-contact:form.email")}} *</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
                     </div>
 
                     <div class="mb-4">
-                        <label for="contact-message" class="form-label" style="font-weight:600;">{{tx("simple-contact:form.message")}} *</label>
-                        <textarea class="form-control" id="contact-message" name="content" rows="6" required style="border-radius:10px; padding:10px;"></textarea>
+                        <label for="contact-message" class="form-label fw-semibold">{{tx("simple-contact:form.message")}} *</label>
+                        <textarea class="form-control" id="contact-message" name="content" rows="6" required></textarea>
                     </div>
 
                     {{{ if requireTerms }}}
                     <div class="mb-3" id="contact-terms-group">
                         {{{ if termsText }}}
-                        <div class="border rounded p-3 mb-2" id="contact-terms-text" style="border-radius:10px; background:#f8f9fa; max-height:220px; overflow:auto;">
+                        <div class="border rounded p-3 mb-2 bg-body-secondary overflow-auto" id="contact-terms-text" style="max-height:220px;">
                             {{termsText}}
                         </div>
                         {{{ end }}}
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="contact-terms" name="terms" required>
-                            <label class="form-check-label" for="contact-terms" style="font-weight:600;">
+                            <label class="form-check-label fw-semibold" for="contact-terms">
                                 {{{ if termsLabel }}}{termsLabel}{{{ else }}}{{tx("simple-contact:form.terms-agree")}}{{{ end }}}
                             </label>
                         </div>
                     </div>
                     {{{ end }}}
 
-                    <button type="submit" class="btn btn-primary w-100" id="submit-btn" style="border-radius:22px; font-weight:600; padding:12px; margin-top:10px;">
+                    <button type="submit" class="btn btn-primary w-100 rounded-pill fw-semibold py-2 mt-2" id="submit-btn">
                         {{tx("simple-contact:form.submit")}}
                     </button>
 
                 </form>
 
-                <div id="contact-alert" class="alert text-center" style="display:none; margin-top:20px; border-radius:10px;"></div>
+                <div id="contact-alert" class="alert text-center mt-4" style="display:none;"></div>
 
             </div>
         </div>
