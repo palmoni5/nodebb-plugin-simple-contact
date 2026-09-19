@@ -20,7 +20,7 @@
   "error.missing-email-data": "חסרים נתונים לשליחה.",
   "error.email-send-prefix": "שגיאה בשליחת המייל",
   "notification.single": "פנייה חדשה מאת %1",
-  "notification.multiple": "%1 פניות חדשות מאת: %2",
+  "notification.multiple": "%1 פניות חדשות",
   "reply.default-subject": "תשובה לפנייתך בצור קשר",
   "admin.waiting-title": "ממתין - פניות לטיפול",
   "admin.handled-title": "מטופל - ארכיון פניות",

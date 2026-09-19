@@ -3,13 +3,15 @@
 const db = require.main.require('./src/database');
 const notifications = require.main.require('./src/notifications');
 const groups = require.main.require('./src/groups');
-const socketIndex = require.main.require('./src/socket.io/index');
 const emailer = require.main.require('./src/emailer');
 const messaging = require.main.require('./src/messaging');
 const user = require.main.require('./src/user');
 const meta = require.main.require('./src/meta');
 const translator = require.main.require('./src/translator');
 const winston = require.main.require('winston');
+
+const MERGE_ID = 'simple-contact:new-contact';
+const CONTACT_NID = /^(contact-request:|contact:assigned:|contact:notification:)/;
 
 const ContactPlugin = {};
 
@@ -24,13 +26,13 @@ ContactPlugin.init = async function (params) {
     router.get('/admin/plugins/contact', middleware.admin.buildHeader, renderAdminPage);
     router.get('/api/admin/plugins/contact', renderAdminPage);
     router.get('/api/admin/plugins/contact/details/:id', getContactDetails);
-    router.post('/api/admin/plugins/contact/handle', middleware.admin.buildHeader, markAsHandled);
-    router.post('/api/admin/plugins/contact/delete', middleware.admin.buildHeader, deleteRequest);
-    router.post('/api/admin/plugins/contact/reply', middleware.admin.buildHeader, replyToContact);
-    router.post('/api/admin/plugins/contact/chat', middleware.admin.buildHeader, getChatRoom);
-    router.post('/api/admin/plugins/contact/comment', middleware.admin.buildHeader, addComment);
-    router.post('/api/admin/plugins/contact/delete-comment', middleware.admin.buildHeader, deleteComment);
-    router.post('/api/admin/plugins/contact/assign', middleware.admin.buildHeader, assignRequest);
+    router.post('/api/admin/plugins/contact/handle', middleware.applyCSRF, markAsHandled);
+    router.post('/api/admin/plugins/contact/delete', middleware.applyCSRF, deleteRequest);
+    router.post('/api/admin/plugins/contact/reply', middleware.applyCSRF, replyToContact);
+    router.post('/api/admin/plugins/contact/chat', middleware.applyCSRF, getChatRoom);
+    router.post('/api/admin/plugins/contact/comment', middleware.applyCSRF, addComment);
+    router.post('/api/admin/plugins/contact/delete-comment', middleware.applyCSRF, deleteComment);
+    router.post('/api/admin/plugins/contact/assign', middleware.applyCSRF, assignRequest);
 };
 
 function isTrue(value) {
@@ -147,9 +149,10 @@ async function handleContactSubmission(req, res) {
         }
     }
 
-    const contactId = Date.now();
+    const contactId = await db.incrObjectField('global', 'nextContactId');
     const key = 'contact-request:' + contactId;
     const senderUid = req.uid || 0;
+    const timestamp = Date.now();
 
     const contactData = {
         id: contactId,
@@ -158,7 +161,7 @@ async function handleContactSubmission(req, res) {
         uid: senderUid,
         email: data.email,
         content: data.content,
-        timestamp: contactId,
+        timestamp: timestamp,
         handled: false,
         termsAccepted: settings.requireTerms ? 1 : 0,
         assignedUid: 0,
@@ -167,30 +170,27 @@ async function handleContactSubmission(req, res) {
 
     try {
         await db.setObject(key, contactData);
-        await db.sortedSetAdd('contact-requests:sorted', contactId, contactId);
+        await db.sortedSetAdd('contact-requests:sorted', timestamp, contactId);
 
         const submitterName = contactData.fullName || (senderUid > 0 ? `uid:${senderUid}` : 'Guest');
         await logActivity(contactId, senderUid, submitterName, 'submitted', { email: contactData.email });
 
         const adminUids = await groups.getMembers('administrators', 0, -1);
         if (adminUids && adminUids.length > 0) {
-            await Promise.all(adminUids.map(async (uid) => {
-                const userUnreadKey = 'contact:unread_names:' + uid;
-                const userNid = 'contact:notification:' + uid;
-                await db.listAppend(userUnreadKey, contactData.fullName);
-                const myNames = await db.getListRange(userUnreadKey, 0, -1);
-                const notificationTitle = (myNames.length === 1) ?
-                    translator.compile('simple-contact:notification.single', myNames[0]) :
-                    translator.compile('simple-contact:notification.multiple', myNames.length, myNames.join(', '));
-                const notification = await notifications.create({
-                    type: 'new-contact', bodyShort: notificationTitle, bodyLong: contactData.content, nid: userNid, path: '/admin/plugins/contact', from: senderUid
-                });
-                await notifications.push(notification, [uid]);
-            }));
+            const notification = await notifications.create({
+                type: 'new-contact',
+                bodyShort: translator.compile('simple-contact:notification.single', contactData.fullName),
+                bodyLong: contactData.content,
+                nid: `contact-request:${contactId}`,
+                mergeId: MERGE_ID,
+                path: '/admin/plugins/contact',
+                from: senderUid,
+            });
+            await notifications.push(notification, adminUids);
         }
         res.json({ success: true, message: await translate(language, 'form.success') });
     } catch (err) {
-        console.error(err);
+        winston.error(`[simple-contact] failed to store contact request: ${err.stack}`);
         res.status(500).json({ error: await translate(language, 'error.internal') });
     }
 }
@@ -199,11 +199,14 @@ async function renderAdminPage(req, res) {
     const language = await getUserLanguage(req.uid);
     if (req.uid) {
         try {
-            const userUnreadKey = 'contact:unread_names:' + req.uid;
-            const userNid = 'contact:notification:' + req.uid;
-            await notifications.markRead(userNid, req.uid);
-            await db.delete(userUnreadKey);
-        } catch (e) { console.error('Error handling notifications logic', e); }
+            const unread = await db.getSortedSetRevRange(`uid:${req.uid}:notifications:unread`, 0, -1);
+            const ours = unread.filter(nid => CONTACT_NID.test(nid));
+            if (ours.length) {
+                await notifications.markReadMultiple(ours, req.uid);
+            }
+        } catch (err) {
+            winston.error(`[simple-contact] failed to mark notifications read: ${err.stack}`);
+        }
     }
     const ids = await db.getSortedSetRevRange('contact-requests:sorted', 0, -1);
     let items = (ids.length > 0) ? await db.getObjects(ids.map(id => 'contact-request:' + id)) : [];
@@ -216,13 +219,13 @@ async function renderAdminPage(req, res) {
     for (let i = 0; i < items.length; i++) {
         const item = items[i];
         item.date = new Date(parseInt(item.timestamp)).toLocaleString();
-        if ((!item.uid || parseInt(item.uid) === 0) && item.username && item.username !== 'אורח') {
+        if ((!item.uid || parseInt(item.uid) === 0) && item.username) {
             try {
                 const foundUid = await user.getUidByUsername(item.username);
                 item.uid = foundUid ? parseInt(foundUid) : 0;
             } catch (err) { item.uid = 0; }
         } else { item.uid = parseInt(item.uid) || 0; }
-        item.displayUsername = item.username && item.username !== 'אורח' ? item.username : await translate(language, 'common.guest');
+        item.displayUsername = item.username || await translate(language, 'common.guest');
         item.showChat = (item.uid > 0);
         item.commentCount = commentCounts[i] || 0;
         item.assignedUid = parseInt(item.assignedUid) || 0;
@@ -378,7 +381,7 @@ async function replyToContact(req, res) {
     try {
         const htmlBody = content.replace(/\n/g, '<br>');
 
-        const siteTitle = meta.config['title'] || 'NetFree';
+        const siteTitle = meta.config['title'] || 'NodeBB';
 
         await emailer.sendToEmail('contact-reply', email, language, {
             subject: subject || await translate(language, 'reply.default-subject'),
@@ -396,7 +399,7 @@ async function replyToContact(req, res) {
 
         res.json({ success: true });
     } catch (err) {
-        console.error(err);
+        winston.error(`[simple-contact] failed to send reply email: ${err.stack}`);
         res.status(500).json({ error: `${await translate(language, 'error.email-send-prefix')}: ${err.message}` });
     }
 }
@@ -421,6 +424,22 @@ ContactPlugin.addAdminNavigation = async function (header) {
         });
     }
     return header;
+};
+
+ContactPlugin.addMergeId = async function (data) {
+    data.mergeIds.push(MERGE_ID);
+    return data;
+};
+
+ContactPlugin.mergeNotifications = async function (data) {
+    data.notifications.forEach((notification) => {
+        if (notification && notification.mergeId === MERGE_ID && notification.mergeCount > 1) {
+            notification.bodyShort = translator.compile(
+                'simple-contact:notification.multiple', notification.mergeCount
+            );
+        }
+    });
+    return data;
 };
 
 module.exports = ContactPlugin;

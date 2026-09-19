@@ -20,7 +20,7 @@
   "error.missing-email-data": "Missing email reply data.",
   "error.email-send-prefix": "Error sending email",
   "notification.single": "New contact request from %1",
-  "notification.multiple": "%1 new contact requests from: %2",
+  "notification.multiple": "%1 new contact requests",
   "reply.default-subject": "Reply to your contact request",
   "admin.waiting-title": "Pending Contact Requests",
   "admin.handled-title": "Handled Requests Archive",

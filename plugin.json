@@ -8,7 +8,9 @@
   "hooks": [
     { "hook": "static:app.load", "method": "init" },
     { "hook": "filter:navigation.available", "method": "addNavigation" },
-    { "hook": "filter:admin.header.build", "method": "addAdminNavigation" }
+    { "hook": "filter:admin.header.build", "method": "addAdminNavigation" },
+    { "hook": "filter:notifications.mergeIds", "method": "addMergeId" },
+    { "hook": "filter:notifications.merge", "method": "mergeNotifications" }
   ],
   "templates": "public/templates",
   "modules": {
