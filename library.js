@@ -5,15 +5,11 @@ const notifications = require.main.require('./src/notifications');
 const groups = require.main.require('./src/groups');
 const socketIndex = require.main.require('./src/socket.io/index');
 const emailer = require.main.require('./src/emailer');
+const messaging = require.main.require('./src/messaging');
 const user = require.main.require('./src/user');
 const meta = require.main.require('./src/meta');
 const translator = require.main.require('./src/translator');
-
-let chats = null;
-let messaging = null;
-
-try { chats = require.main.require('./src/chats'); } catch (e) {}
-try { messaging = require.main.require('./src/messaging'); } catch (e) {}
+const winston = require.main.require('winston');
 
 const ContactPlugin = {};
 
@@ -82,11 +78,6 @@ async function logActivity(contactId, actorUid, actorName, type, extra) {
 
 async function getChatRoom(req, res) {
     const language = await getUserLanguage(req.uid);
-
-    if (!chats && !messaging) {
-        return res.status(500).json({ error: await translate(language, 'error.chat-modules-not-found') });
-    }
-
     const { touid, title, firstMessage, contactId } = req.body;
     const myUid = req.uid;
 
@@ -95,86 +86,20 @@ async function getChatRoom(req, res) {
     }
 
     try {
-        let roomId = null;
-
-        const chatModule = chats || messaging;
-
-        if (chatModule.getRoomId) {
-            roomId = await chatModule.getRoomId(myUid, touid);
-        } else if (chatModule.getRoomIdForUser) {
-            roomId = await chatModule.getRoomIdForUser(myUid, touid);
-        }
+        let roomId = await messaging.hasPrivateChat(myUid, touid);
 
         if (!roomId) {
-            if (chatModule.create) {
-                const newRoom = await chatModule.create([myUid, touid]);
-                roomId = (newRoom && newRoom.roomId) ? newRoom.roomId : newRoom;
-            } else if (chatModule.newRoom) {
-                roomId = await chatModule.newRoom(myUid, [touid]);
-            } else if (chatModule.createRoom) {
-                roomId = await chatModule.createRoom([myUid, touid]);
+            const roomData = { uids: [touid] };
+            if (title) {
+                roomData.roomName = title;
             }
-        }
-
-        if (!roomId) {
-            throw new Error(await translate(language, 'error.unable-to-create-room'));
-        }
-
-        if (typeof roomId === 'object' && roomId.roomId) {
-            roomId = roomId.roomId;
-        }
-
-        if (title) {
-            try {
-                if (chats && chats.renameRoom) {
-                    await chats.renameRoom(myUid, roomId, title);
-                } else if (messaging && messaging.renameRoom) {
-                    await messaging.renameRoom(myUid, roomId, title);
-                }
-            } catch (err) {
-                console.warn('[Contact Plugin] Failed to rename room:', err.message);
-            }
+            roomId = await messaging.newRoom(myUid, roomData);
+        } else if (title) {
+            await messaging.renameRoom(myUid, roomId, title);
         }
 
         if (firstMessage) {
-            let sent = false;
-            console.log('[Contact Plugin] Attempting to send message to Room ' + roomId);
-
-            if (!sent && messaging && messaging.sendMessage) {
-                try {
-                    await messaging.sendMessage({ uid: myUid, roomId: roomId, content: firstMessage });
-                    sent = true;
-                    console.log('[Contact Plugin] Sent via messaging.sendMessage (Object)');
-                } catch (e) { console.log('Try 1 failed:', e.message); }
-            }
-
-            if (!sent && chats && chats.addMessage) {
-                try {
-                    await chats.addMessage(myUid, roomId, firstMessage);
-                    sent = true;
-                    console.log('[Contact Plugin] Sent via chats.addMessage');
-                } catch (e) { console.log('Try 2 failed:', e.message); }
-            }
-
-            if (!sent && chats && chats.send) {
-                try {
-                    await chats.send(myUid, roomId, firstMessage);
-                    sent = true;
-                    console.log('[Contact Plugin] Sent via chats.send');
-                } catch (e) { console.log('Try 3 failed:', e.message); }
-            }
-
-            if (!sent && chats && chats.reply) {
-                try {
-                    await chats.reply(roomId, myUid, firstMessage);
-                    sent = true;
-                    console.log('[Contact Plugin] Sent via chats.reply');
-                } catch (e) { console.log('Try 4 failed:', e.message); }
-            }
-
-            if (!sent) {
-                console.error('[Contact Plugin] Failed to send message with all known methods.');
-            }
+            await messaging.addMessage({ uid: myUid, roomId: roomId, content: firstMessage });
         }
 
         if (contactId) {
@@ -183,9 +108,8 @@ async function getChatRoom(req, res) {
         }
 
         res.json({ roomId: roomId });
-
     } catch (err) {
-        console.error('[Contact Plugin Chat Error]', err);
+        winston.error(`[simple-contact] failed to open chat room: ${err.stack}`);
         res.status(500).json({ error: `${await translate(language, 'error.internal-prefix')}: ${err.message}` });
     }
 }
